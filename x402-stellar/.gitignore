@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.turbo
+*.tsbuildinfo
+
+# Generated channel account keys (contain secrets)
+examples/facilitator/scripts/output/

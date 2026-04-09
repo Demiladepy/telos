@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+.next/
+.nuxt/
+.turbo/
+*.tsbuildinfo
+
+# Environment & secrets (keep .env.example committed)
+.env
+.env.*
+!.env.example
+
+# Logs & debug
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# IDE / editor (uncomment if you do not share editor settings in-repo)
+# .vscode/
+.idea/
+*.swp
+*.swo
+
+# Misc
+.cache/
+*.local
+
+# Rust / Soroban (telos-contracts)
+telos-contracts/target/

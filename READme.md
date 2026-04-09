@@ -11,13 +11,15 @@
 
 ## Problem
 
-Today's AI agents are siloed. A "Financial Analyst" agent cannot reliably hire a "Web Scraper" agent. Two structural gaps explain why:
+Today's AI agents are siloed. A "Financial Analyst" agent cannot reliably hire a "Web Scraper" agent. Three structural gaps explain why:
 
 1. **No shared protocol to negotiate.** There is no common, machine-readable contract for "what this call costs" and "how to prove payment" across different agent implementations and hosts.
 
 2. **No bank account to pay.** Software agents do not hold payment instruments the web already understands at API boundaries. Every meaningful API call still tends to route through a human with a credit card. That is the bottleneck for real autonomy at scale.
 
-Until agents can discover peers, agree on price, and settle programmatically, multi-agent workflows remain glued together by people and manual billing.
+3. **Operational fragmentation for anyone who is not a full-stack operator.** Even when the pieces exist, using them means cloning multiple services, configuring Stellar keys, registry URLs, facilitator endpoints, and paywall environment across repos, and piecing together scattered README instructions just to run one workflow. Most users will not do that. That fragmentation is an adoption wall on top of the protocol and payment gaps.
+
+Until agents can discover peers, agree on price, and settle programmatically, multi-agent workflows remain glued together by people and manual billing. Until the stack is reachable through a single product surface, only a narrow builder audience can participate.
 
 ## Solution
 
@@ -26,8 +28,9 @@ Telos combines:
 - **Discovery and identity** via an **agent registry** (HTTP API backed by file storage for development or by **Soroban** smart contracts on Stellar for on-chain records).
 - **Machine-native payment** using **[x402](https://www.x402.org/)** on **Stellar**: paid HTTP resources with verify/settle flows and a facilitator pattern, implemented in this monorepo through `x402-stellar` (facilitator, paywall middleware, and client tooling).
 - **Orchestration** through **telos-manager**, which can resolve agents from the registry and complete paid HTTP calls with a server-side Stellar signer, so one agent (or a service acting on its behalf) can pay another without a card present.
+- **A Telos frontend** as the single product surface where users can **discover** agents and capabilities from the same registry the stack already uses (instead of reading scattered README files), **run workflows** implemented as orchestrated calls (manager + x402) behind simple actions (instead of hand-curling paid HTTP), and **connect or delegate payment** in one place (wallet flow, hosted signer, or clear instructions), instead of duplicating signer setup per agent repo.
 
-Together, these pieces give agents a **protocol** (x402 + HTTP) and a **settlement rail** (Stellar) so hiring and payment can be automated end to end.
+Together, these pieces give agents a **protocol** (x402 + HTTP) and a **settlement rail** (Stellar) so hiring and payment can be automated end to end. The frontend does not replace that protocol; it **bundles** it so casual users get one path while advanced builders still integrate **directly** with **telos-registry**, **telos-manager**, and **x402** APIs and keep full control.
 
 ## How agents hire other agents
 
@@ -145,18 +148,6 @@ flowchart LR
 - **telos-agents** is a reference **agent service** that can expose paid routes and perform **allowlisted paid fetches** to hire other agents via x402.
 
 **Trust and operations:** production deployments should use least-privilege keys, secure storage for secrets, and explicit allowlists for who may pay whom. Subproject `README` files document environment variables and endpoints.
-
-## Frontend and cutting fragmentation
-
-Most users will not clone five services, configure Stellar keys, registry URLs, facilitator endpoints, and paywall env files just to run one workflow. That **fragmentation** is an adoption wall.
-
-The **Telos frontend** is the single product surface where users can:
-
-- **Discover** agents and capabilities from the same registry the stack already uses, instead of reading scattered README files.
-- **Run workflows** that are implemented as orchestrated calls (manager + x402) behind simple actions, instead of hand-curling paid HTTP.
-- **Connect or delegate payment** in one place (wallet flow, hosted signer, or clear instructions), instead of duplicating signer setup per agent repo.
-
-Advanced builders can still integrate **directly** with **telos-registry**, **telos-manager**, and **x402** APIs. The frontend does not replace the protocol; it **bundles** it so casual users get one path while power users keep full control.
 
 ## Repository layout
 

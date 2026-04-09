@@ -3,12 +3,15 @@ import { Router as createRouter } from "express";
 import { evaluate } from "mathjs";
 import { z } from "zod";
 import {
+  COINGECKO_API_KEY,
   DEEP_RESEARCH_MODEL,
   getDeepResearchHireUrl,
   isHiringWalletConfigured,
   OPENROUTER_API_KEY,
   OPENROUTER_MODEL,
+  WEBSITE_BUILDER_MODEL,
 } from "./config.js";
+import { fetchCoinGeckoUsd, fetchCryptoSentiment } from "./coingecko.js";
 import { runDeepResearchLlm } from "./deepResearchLlm.js";
 import { hireDeepResearch, hirePaidAgent, hireRegistryAgent } from "./hiring.js";
 
@@ -51,6 +54,33 @@ const mathBody = z.object({
   hireFromRegistry: hireFromRegistrySchema.optional(),
 });
 const textBody = z.object({ text: z.string().min(1).max(50_000) });
+
+const cryptoSentimentBody = z
+  .object({
+    /** Ticker, e.g. BTC — used with CoinGecko when COINGECKO_API_KEY is set */
+    symbol: z.string().min(1).max(32).optional(),
+    /** Optional narrative; combined with market data or keyword fallback */
+    text: z.string().min(1).max(50_000).optional(),
+  })
+  .refine((d) => Boolean(d.symbol?.trim()) || Boolean(d.text?.trim()), {
+    message: "Provide symbol (e.g. BTC) and/or text",
+  });
+
+const TICKER_IN_TEXT = /\b(BTC|ETH|XLM|SOL|DOGE|ADA|DOT|AVAX|LINK|UNI|SHIB|XRP|MATIC|POL|LTC|ATOM)\b/i;
+
+function guessSymbolFromText(text: string): string | null {
+  const m = text.match(TICKER_IN_TEXT);
+  return m ? m[1]!.toUpperCase() : null;
+}
+
+function keywordSentimentAdjust(text: string): number {
+  const t = text.toLowerCase();
+  const bullish = ["moon", "bull", "buy", "up", "pump", "rocket"].some((k) => t.includes(k));
+  const bearish = ["bear", "sell", "crash", "down", "dump", "rug"].some((k) => t.includes(k));
+  if (bullish && !bearish) return 0.06;
+  if (bearish && !bullish) return -0.06;
+  return 0;
+}
 const symbolQuery = z.object({ symbol: z.string().min(1).max(32).optional() });
 const promptBodyFixed = z.object({ prompt: z.string().min(1).max(8000) });
 
@@ -278,21 +308,54 @@ export function agentRouter(): Router {
     res.json({ agent: "summarizer-pro", summary, offline: true });
   });
 
-  r.post("/crypto-sentiment/testnet", (req: Request, res: Response) => {
-    const parsed = textBody.safeParse(req.body);
+  r.post("/crypto-sentiment/testnet", async (req: Request, res: Response) => {
+    const parsed = cryptoSentimentBody.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "validation_error", details: parsed.error.flatten() });
       return;
     }
-    const t = parsed.data.text.toLowerCase();
+    const { symbol: bodySymbol, text } = parsed.data;
+    const symbol =
+      bodySymbol?.trim().toUpperCase() ?? (text ? guessSymbolFromText(text) : null) ?? "BTC";
+
+    if (COINGECKO_API_KEY) {
+      try {
+        const cg = await fetchCryptoSentiment(symbol);
+        if (cg) {
+          let score = cg.score;
+          if (text) {
+            score = Math.min(0.95, Math.max(0.05, score + keywordSentimentAdjust(text)));
+          }
+          const sentiment =
+            score >= 0.55 ? "bullish" : score <= 0.45 ? "bearish" : "neutral";
+          res.json({
+            agent: "crypto-sentiment",
+            source: "coingecko",
+            symbol,
+            sentiment,
+            score: Number(score.toFixed(3)),
+            coingecko: cg,
+            ...(text ? { text_context: true } : {}),
+            note: "Market + community signals from CoinGecko; optional text nudges score slightly. Not financial advice.",
+          });
+          return;
+        }
+      } catch {
+        /* fall through */
+      }
+    }
+
+    const t = (text ?? "").toLowerCase();
     const bullish = ["moon", "bull", "buy", "up", "pump"].some((k) => t.includes(k));
     const bearish = ["bear", "sell", "crash", "down", "dump"].some((k) => t.includes(k));
     const score = bullish && !bearish ? 0.65 : bearish && !bullish ? 0.35 : 0.5;
     res.json({
       agent: "crypto-sentiment",
+      source: "keyword_fallback",
+      symbol,
       sentiment: score >= 0.55 ? "bullish" : score <= 0.45 ? "bearish" : "neutral",
       score,
-      note: "Heuristic demo — not financial advice.",
+      note: "Set COINGECKO_API_KEY for live market-based sentiment from CoinGecko.",
     });
   });
 
@@ -347,7 +410,22 @@ export function agentRouter(): Router {
     }
     const symbol = (parsed.data.symbol ?? "XLM").toUpperCase();
     const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-    const price = (seed % 1000) / 10 + 0.01;
+    let priceUsd = (seed % 1000) / 10 + 0.01;
+    let priceSource: "coingecko" | "demo" = "demo";
+    let coingeckoQuote: Awaited<ReturnType<typeof fetchCoinGeckoUsd>> | undefined;
+
+    if (COINGECKO_API_KEY) {
+      try {
+        const q = await fetchCoinGeckoUsd(symbol);
+        if (q) {
+          priceUsd = q.price_usd;
+          priceSource = "coingecko";
+          coingeckoQuote = q;
+        }
+      } catch {
+        /* keep demo fallback */
+      }
+    }
 
     const hireFlag = String(req.query.hire_deep_research ?? "").toLowerCase();
     const wantsResearch = hireFlag === "1" || hireFlag === "true";
@@ -387,7 +465,7 @@ export function agentRouter(): Router {
           reason: "Set AGENT_HIRING_STELLAR_SECRET to pay downstream agents.",
         };
       } else {
-        const marketPrompt = `Market symbol ${symbol} (demo price ${Number(price.toFixed(4))} USD). Research angle: ${researchTopic}`;
+        const marketPrompt = `Market symbol ${symbol} (${priceSource === "coingecko" ? "CoinGecko" : "demo"} ~${priceUsd} USD). Research angle: ${researchTopic}`;
         try {
           let hired: HireEntry;
           if (hireAgentUrl) {
@@ -438,25 +516,53 @@ export function agentRouter(): Router {
     res.json({
       agent: "market-oracle",
       symbol,
-      price_usd: Number(price.toFixed(4)),
+      price_usd: priceSource === "coingecko" ? priceUsd : Number(priceUsd.toFixed(4)),
+      source: priceSource,
+      ...(coingeckoQuote ? { coingecko: coingeckoQuote } : {}),
       timestamp: new Date().toISOString(),
-      note: "Demo pseudo-price — connect CoinGecko or similar for live data.",
+      note:
+        priceSource === "coingecko"
+          ? "USD spot from CoinGecko (rate limits per your plan)."
+          : "Demo pseudo-price — set COINGECKO_API_KEY for live data, or use a mapped symbol (BTC, ETH, XLM, …).",
       ...(autonomousEconomy ? { autonomousEconomy } : {}),
     });
   });
 
-  r.post("/website-builder/testnet", (req: Request, res: Response) => {
+  r.post("/website-builder/testnet", async (req: Request, res: Response) => {
     const parsed = promptBodyFixed.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: "validation_error", details: parsed.error.flatten() });
       return;
     }
     const prompt = parsed.data.prompt;
+
+    if (OPENROUTER_API_KEY) {
+      try {
+        const html = await runWebsiteBuilderLlm(
+          `Build a single-page marketing section for: ${prompt}`,
+        );
+        res.json({
+          agent: "website-builder",
+          model: WEBSITE_BUILDER_MODEL,
+          html,
+          note: "LLM-generated fragment; review before production. No full sanitizer.",
+        });
+        return;
+      } catch (e) {
+        res.status(502).json({
+          agent: "website-builder",
+          error: "llm_failed",
+          message: String(e),
+        });
+        return;
+      }
+    }
+
     const safe = prompt.replace(/</g, "&lt;").slice(0, 200);
     res.json({
       agent: "website-builder",
-      html: `<main class="p-4"><h1>Landing</h1><p>${safe}</p><footer class="text-sm text-gray-500">Built by telos-agents (demo)</footer></main>`,
-      note: "Demo static HTML fragment — expand with a real template or SSR pipeline.",
+      html: `<main class="p-4"><h1>Landing</h1><p>${safe}</p><footer class="text-sm text-gray-500">Built by telos-agents (offline)</footer></main>`,
+      note: "Set OPENROUTER_API_KEY for LLM-generated HTML sections.",
     });
   });
 

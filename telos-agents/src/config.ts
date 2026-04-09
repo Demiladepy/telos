@@ -69,6 +69,14 @@ export const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL?.trim() ?? "openai/
 export const DEEP_RESEARCH_MODEL =
   process.env.DEEP_RESEARCH_MODEL?.trim() ?? OPENROUTER_MODEL;
 
+/** Model for POST /website-builder/testnet (defaults to OPENROUTER_MODEL). */
+export const WEBSITE_BUILDER_MODEL =
+  process.env.WEBSITE_BUILDER_MODEL?.trim() ?? OPENROUTER_MODEL;
+
+/** CoinGecko Demo (`x-cg-demo-api-key`) or Pro (`x-cg-pro-api-key`). Never commit real keys. */
+export const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY?.trim();
+export const COINGECKO_PRO = process.env.COINGECKO_PRO?.toLowerCase() === "true";
+
 /** Base URL of this service for server-to-server x402 calls (must match how clients reach you). */
 export const AGENTS_PUBLIC_BASE_URL = (process.env.AGENTS_PUBLIC_BASE_URL ?? "http://localhost:3100").replace(
   /\/+$/,

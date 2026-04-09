@@ -4,14 +4,12 @@ import express from "express";
 import helmet from "helmet";
 import { agentsRouter } from "./routes/agents.js";
 import { bootstrapStellarIdentityFromEnv } from "./stellarBootstrap.js";
+import { getStorageMode } from "./store.js";
 
 const PORT = Number(process.env.PORT ?? "4010");
 
-const onchainEnabled = Boolean(
-  process.env.TELOS_REGISTRY_CONTRACT_ID?.trim() && process.env.TELOS_REGISTRY_SOURCE_ACCOUNT?.trim(),
-);
-
 bootstrapStellarIdentityFromEnv();
+const storageMode = getStorageMode();
 
 const app = express();
 app.use(helmet());
@@ -22,7 +20,7 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "telos-registry",
-    storage: onchainEnabled ? "onchain" : "file",
+    storage: storageMode,
   });
 });
 
@@ -30,5 +28,5 @@ app.use("/v1/agents", agentsRouter());
 
 app.listen(PORT, () => {
   console.log(`[telos-registry] listening on http://localhost:${PORT}`);
-  console.log(`[telos-registry] storage=${onchainEnabled ? "onchain" : "file"}`);
+  console.log(`[telos-registry] storage=${storageMode}`);
 });

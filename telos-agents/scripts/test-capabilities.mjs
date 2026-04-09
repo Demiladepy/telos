@@ -99,7 +99,10 @@ async function main() {
       {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ text: "Bitcoin to the moon, bullish momentum." }),
+        body: JSON.stringify({
+          symbol: "BTC",
+          text: "Bitcoin to the moon, bullish momentum.",
+        }),
       },
     ),
   );
@@ -138,6 +141,11 @@ async function main() {
     process.exit(1);
   }
   console.log("All capability checks returned OK.");
+  if (process.env.COINGECKO_API_KEY?.trim()) {
+    console.log("Market: with COINGECKO_API_KEY, JSON should include source: coingecko when the symbol maps (e.g. BTC).");
+  } else {
+    console.log("Market: add COINGECKO_API_KEY to .env for live prices; otherwise source stays demo.");
+  }
 }
 
 main().catch((e) => {

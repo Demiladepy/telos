@@ -167,6 +167,24 @@ flowchart LR
 3. Follow the README in **`x402-stellar`** to run the facilitator and an example paywall stack.
 4. Run **`telos-registry`** and **`telos-manager`** with `REGISTRY_URL` and payment-related variables aligned with your Stellar testnet setup.
 
+### Local paid stack (checklist)
+
+1. **Facilitator** — `x402-stellar/examples/facilitator`: configure `.env`, run `pnpm dev` (default port **4022**).
+2. **`telos-agents`** — `TESTNET_FACILITATOR_URL`, seller `TESTNET_SERVER_STELLAR_ADDRESS` / `PAY_TO_*`, funded keys + USDC trustlines; `PAYWALL_DISABLED=false` for real x402. Optional: `COINGECKO_API_KEY` (market + crypto sentiment), `OPENROUTER_API_KEY` (summarize, deep-research, website-builder).
+3. **`telos-registry`** — port **4010**; register agents (`telos-agents`: `pnpm register:agents` with `REGISTRY_URL` set).
+4. **`telos-manager`** — `STELLAR_PRIVATE_KEY` (payer), `REGISTRY_URL`, `NETWORK=testnet`; call `POST /v1/execute` with `path` matching each agent route (e.g. `/market/testnet?symbol=BTC`).
+
+For **handler-only** smoke tests, use `PAYWALL_DISABLED=true` in `telos-agents` and `pnpm test:capabilities`.
+
+### How x402 payment flows (manager ↔ agents ↔ facilitator)
+
+1. **telos-agents** registers **x402 `paymentMiddleware`** with **`payTo`** (seller) and **`TESTNET_FACILITATOR_URL`**. Unpaid requests to a protected route get **HTTP 402** with payment requirements.
+2. **Facilitator** (in `x402-stellar`) exposes **verify** / **settle**. The agent’s middleware talks to it to confirm the payer’s Stellar payment and submit it on-chain.
+3. **telos-manager** holds **`STELLAR_PRIVATE_KEY`** — the **buyer** wallet. **`paidFetch`** (x402 client) handles 402 → build payment → retry with headers; settlement metadata may include a **Stellar Expert** tx link.
+4. **Money**: USDC (or whatever the exact scheme uses) moves **buyer → `payTo`** on the agent’s route config. The **registry `payTo`** should match what the agent advertises in x402 so discovery and settlement align.
+
+**Try it:** with facilitator + registry + agents (paywall on) + manager running, from **`telos-manager`**: **`pnpm try:paid`** (optional args: `weather "/weather/testnet?city=London"`). Requires a **funded payer** key on manager and **USDC + trustline** on testnet.
+
 ## License and third-party
 
 See `LICENSE` and `THIRD_PARTY_NOTICES.md` in subpackages (for example `x402-stellar/`) where they apply.

@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import fs from "fs/promises";
 import path from "path";
-import { spawnSync } from "child_process";
+import { spawnSync, type SpawnSyncReturns } from "child_process";
 import type { AgentRecord, AgentRegisterInput } from "./types.js";
 import { getStellarPublicKey } from "./stellarBootstrap.js";
 
@@ -13,8 +13,50 @@ type Persisted = { agents: Record<string, AgentRecord> };
 const ONCHAIN_CONTRACT_ID = process.env.TELOS_REGISTRY_CONTRACT_ID?.trim();
 const ONCHAIN_SOURCE_ACCOUNT = process.env.TELOS_REGISTRY_SOURCE_ACCOUNT?.trim();
 const ONCHAIN_NETWORK = process.env.TELOS_REGISTRY_NETWORK?.trim() || "testnet";
+const STELLAR_BINS = process.platform === "win32" ? ["stellar", "stellar.cmd"] : ["stellar"];
 
-const isOnchainEnabled = Boolean(ONCHAIN_CONTRACT_ID && ONCHAIN_SOURCE_ACCOUNT);
+const onchainConfigured = Boolean(ONCHAIN_CONTRACT_ID && ONCHAIN_SOURCE_ACCOUNT);
+
+function stellarCliAppearsMissing(stderr?: string, stdout?: string, errorMessage?: string): boolean {
+  const msg = `${stderr ?? ""} ${stdout ?? ""} ${errorMessage ?? ""}`.toLowerCase();
+  return (
+    msg.includes("not recognized") ||
+    msg.includes("enoent") ||
+    msg.includes("no such file or directory") ||
+    msg.includes("is not recognized as an internal or external command")
+  );
+}
+
+function detectOnchainEnabled(): boolean {
+  if (!onchainConfigured) return false;
+  const result = runStellar(["--version"]);
+  const missing = stellarCliAppearsMissing(result.stderr, result.stdout, result.error?.message);
+  if (missing) {
+    console.warn(
+      "[telos-registry] On-chain config detected, but Stellar CLI is unavailable; falling back to file storage.",
+    );
+    return false;
+  }
+  return true;
+}
+
+const isOnchainEnabled = detectOnchainEnabled();
+
+function runStellar(args: string[]) {
+  let lastResult: SpawnSyncReturns<string> | undefined;
+  for (const bin of STELLAR_BINS) {
+    const result = spawnSync(bin, args, {
+      shell: false,
+      encoding: "utf8",
+      stdio: "pipe",
+    });
+    lastResult = result;
+    if (!stellarCliAppearsMissing(result.stderr, result.stdout, result.error?.message)) {
+      return result;
+    }
+  }
+  return lastResult ?? spawnSync("stellar", args, { shell: false, encoding: "utf8", stdio: "pipe" });
+}
 
 interface ChainProfile {
   owner: string;
@@ -48,11 +90,7 @@ function runStellarInvoke(args: string[], send: boolean): string {
   }
   baseArgs.push("--", ...args);
 
-  const result = spawnSync("stellar", baseArgs, {
-    shell: false,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
+  const result = runStellar(baseArgs);
 
   if (result.status !== 0) {
     const stderr = (result.stderr || "").trim();
@@ -283,4 +321,8 @@ export async function deleteAgent(id: string): Promise<boolean> {
   delete data.agents[id];
   await writeAll(data);
   return true;
+}
+
+export function getStorageMode(): "onchain" | "file" {
+  return isOnchainEnabled ? "onchain" : "file";
 }

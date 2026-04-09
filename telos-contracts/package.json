@@ -1,0 +1,16 @@
+{
+  "name": "telos-contracts-tools",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "registry:help": "node scripts/registry.mjs help",
+    "registry:id": "node scripts/registry.mjs id",
+    "registry:list": "node scripts/registry.mjs list",
+    "registry:get": "node scripts/registry.mjs get",
+    "registry:register": "node scripts/registry.mjs register",
+    "registry:update": "node scripts/registry.mjs update",
+    "registry:remove": "node scripts/registry.mjs remove"
+  }
+}
+

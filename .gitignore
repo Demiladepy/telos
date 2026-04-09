@@ -5,33 +5,55 @@ frontend/node_modules/
 # Build output
 frontend/build/
 dist/
+build/
+out/
+.next/
+.nuxt/
+.turbo/
 .output/
 
-# Environment variables
+# Environment & secrets
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 
-# Logs
+# Logs & debug
+logs/
 *.log
 npm-debug.log*
+pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
 
-# Editor & OS
+# Test & coverage
+coverage/
+.nyc_output/
+
+# OS
 .DS_Store
 Thumbs.db
-.vscode/
+Desktop.ini
+
+# Editor
 .idea/
+*.swp
+*.swo
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
 
 # TypeScript
 *.tsbuildinfo
 
 # Vite
 frontend/.vite/
+
+# Misc
+.cache/
+*.local
+
+# Rust / Soroban (telos-contracts)
+telos-contracts/target/

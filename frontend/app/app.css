@@ -1,0 +1,268 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap");
+
+@import "tailwindcss";
+
+@theme {
+  /* The Void */
+  --color-void-pure: #000000;
+  --color-void-deep: #03030a;
+  --color-void-surface: #0a0a14;
+  --color-void-elevated: #111122;
+  --color-void-panel: #14142b;
+
+  /* Accretion Energy */
+  --color-accretion-core: #ff6b00;
+  --color-accretion-hot: #ff9500;
+  --color-accretion-glow: #ffba5c;
+  --color-accretion-flare: #ffd9a0;
+
+  /* Nebula Field */
+  --color-nebula-core: #7b2fff;
+  --color-nebula-mid: #9b59ff;
+  --color-nebula-light: #b794ff;
+
+  /* Stellar White */
+  --color-stellar-pure: #ffffff;
+  --color-stellar-bright: #e8e8f0;
+  --color-stellar-mid: #9898b0;
+  --color-stellar-dim: #5c5c78;
+  --color-stellar-ghost: #3a3a52;
+
+  /* Signal Colors */
+  --color-signal-active: #00ff94;
+  --color-signal-pending: #ffd600;
+  --color-signal-critical: #ff3366;
+  --color-signal-info: #00b4ff;
+
+  /* Font Families */
+  --font-display: "Instrument Serif", serif;
+  --font-ui: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Text Scale */
+  --text-hero: clamp(4rem, 10vw, 9rem);
+  --text-display: clamp(2.5rem, 5vw, 5rem);
+  --text-title: clamp(1.5rem, 3vw, 2.25rem);
+  --text-heading: 1.25rem;
+  --text-body: 1rem;
+  --text-caption: 0.8125rem;
+  --text-micro: 0.6875rem;
+
+  /* Spacing */
+  --spacing-section: clamp(80px, 10vw, 160px);
+}
+
+/* Raw CSS custom properties (not in @theme — for use in arbitrary CSS) */
+:root {
+  --accretion-dim: rgba(255, 107, 0, 0.15);
+  --nebula-wash: rgba(123, 47, 255, 0.08);
+  --nebula-glow: rgba(155, 89, 255, 0.25);
+
+  --gradient-accretion: linear-gradient(135deg, #ff6b00 0%, #ff9500 50%, #ffd9a0 100%);
+  --gradient-nebula: linear-gradient(135deg, #7b2fff 0%, #9b59ff 50%, #b794ff 100%);
+  --gradient-horizon: linear-gradient(180deg, #7b2fff 0%, #ff6b00 100%);
+  --gradient-void: radial-gradient(ellipse at center, #14142b 0%, #000000 70%);
+
+  --cursor-x: 50vw;
+  --cursor-y: 50vh;
+}
+
+/* Base */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #000000;
+  color: #e8e8f0;
+  font-family: "Outfit", sans-serif;
+  font-weight: 400;
+  line-height: 1.7;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Cursor glow effect */
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  background: radial-gradient(
+    100px circle at var(--cursor-x) var(--cursor-y),
+    rgba(255, 107, 0, 0.04) 0%,
+    transparent 70%
+  );
+  transition: background 0.1s;
+}
+
+/* Scan lines overlay */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.008) 2px,
+    rgba(255, 255, 255, 0.008) 4px
+  );
+  mix-blend-mode: overlay;
+}
+
+/* Typography */
+.font-display { font-family: "Instrument Serif", serif; }
+.font-ui { font-family: "Outfit", sans-serif; }
+.font-mono { font-family: "JetBrains Mono", monospace; }
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #03030a;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3a52;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #5c5c78;
+}
+
+/* CSS Particle dust — ambient background layer */
+@keyframes float-up {
+  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 0.3; }
+  100% { transform: translateY(-10vh) translateX(20px); opacity: 0; }
+}
+
+@keyframes float-up-2 {
+  0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+  10% { opacity: 0.5; }
+  90% { opacity: 0.1; }
+  100% { transform: translateY(-10vh) translateX(-30px); opacity: 0; }
+}
+
+.particle-dust {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.particle-dust span {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  background: rgba(255, 107, 0, 0.3);
+  animation: float-up linear infinite;
+}
+
+/* Accretion glow text utility */
+.text-glow-accretion {
+  text-shadow: 0 0 20px rgba(255, 107, 0, 0.4), 0 0 40px rgba(255, 107, 0, 0.2);
+}
+
+.text-glow-nebula {
+  text-shadow: 0 0 20px rgba(123, 47, 255, 0.4), 0 0 40px rgba(123, 47, 255, 0.2);
+}
+
+/* Glass panel utility */
+.glass-panel {
+  background: rgba(20, 20, 43, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Pulse animation for status dots */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.8; box-shadow: 0 0 6px currentColor; }
+  50% { opacity: 1; box-shadow: 0 0 12px currentColor, 0 0 24px currentColor; }
+}
+
+/* Number counting animation */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Shimmer */
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.shimmer-border {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 107, 0, 0.4) 0%,
+    rgba(255, 186, 92, 0.8) 50%,
+    rgba(255, 107, 0, 0.4) 100%
+  );
+  background-size: 200% auto;
+  animation: shimmer 2s linear infinite;
+}
+
+/* Particle travel animation on network edges */
+@keyframes travel {
+  0% { stroke-dashoffset: 200; opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+/* Star rotation */
+@keyframes star-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes star-pulse {
+  0%, 100% { opacity: 0.8; transform: scale(0.98); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+/* Page container */
+.page-container {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid rgba(123, 47, 255, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(123, 47, 255, 0.3);
+  color: #e8e8f0;
+}

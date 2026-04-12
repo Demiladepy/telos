@@ -6,7 +6,8 @@ import {
   useRouteError,
 } from "react-router";
 import { useEffect } from "react";
-import "./app.css";
+/** Resolved at build time so prerendered HTML includes `<link rel="stylesheet">` (CSS import alone was emitted with no link in SPA shell). */
+import appCssHref from "./app.css?url";
 import GenerateWalletModal from "~/components/GenerateWalletModal";
 import Navbar from "~/components/Navbar";
 import StellarKitInit from "~/components/StellarKitInit";
@@ -20,6 +21,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="TELOS — Autonomous agent economy on Stellar: telos-registry for discovery and payTo, web UI with a manager agent that hires specialists via x402 machine payments." />
         <title>TELOS</title>
+        <link rel="stylesheet" href={appCssHref} />
       </head>
       <body className="bg-[#000000] text-[#e8e8f0] overflow-x-hidden">
         {/* Fixed atmospheric gradients — break the flat void */}

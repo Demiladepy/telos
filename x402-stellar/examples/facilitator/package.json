@@ -14,7 +14,8 @@
     "lint:fix": "eslint src/ --fix",
     "generate-channel-accounts": "tsx scripts/generate-channel-accounts.ts",
     "refund-accounts-from-env": "tsx scripts/refund-accounts-from-env.ts",
-    "refund-accounts-from-remote": "tsx scripts/refund-accounts-from-remote.ts"
+    "refund-accounts-from-remote": "tsx scripts/refund-accounts-from-remote.ts",
+    "render:build": "pnpm -w install --frozen-lockfile && pnpm run build"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^14.6.1",

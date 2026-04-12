@@ -1,4 +1,5 @@
 packages:
+  - .
   - examples/*/server
   - examples/*/client
   - examples/facilitator

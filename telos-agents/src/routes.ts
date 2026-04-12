@@ -14,6 +14,7 @@ import {
 import { fetchCoinGeckoUsd, fetchCryptoSentiment } from "./coingecko.js";
 import { runDeepResearchLlm } from "./deepResearchLlm.js";
 import { hireDeepResearch, hirePaidAgent, hireRegistryAgent } from "./hiring.js";
+import { runWebsiteBuilderLlm } from "./websiteBuilderLlm.js";
 
 const OPEN_METEO_GEO = "https://geocoding-api.open-meteo.com/v1/search";
 const OPEN_METEO_FC = "https://api.open-meteo.com/v1/forecast";
